@@ -5,10 +5,13 @@
 #include <bitset>
 #include <stdlib.h>
 #include <random>
+#include <float.h>
 
 #define ALPHA 1.0
 #define BETA 2.0
 #define INITIAL_TAU 0.0001
+#define EVAPORATE 0.95
+#define Q 0.2
 
 /**
  * This class allows for a dynamic bitmap with optimized space.
@@ -59,14 +62,11 @@ class Bitmap {
 
 
 class Ant {
+ public:
     Bitmap visited;
     std::vector<int> tour;
- public:
+    double tour_len;
     Ant(int n_cities): visited(n_cities), tour(n_cities) {}
-
-    void visitCity(int i) {
-        visited.set(i, 1);
-    }
 };
 
 std::vector<std::vector<double> > * get_matrix(const char * file_path) {
@@ -146,10 +146,16 @@ int main(int argc, const char ** argv) {
     int n = (*mat).size();
     std::vector<std::vector<double> > phero = std::vector<std::vector<double> >(n, std::vector<double> (n, INITIAL_TAU));
 
+    // initialize ants
     int n_ants = n;
-    int n_iterations = 1000;
+    std::vector<Ant *> ants(n_ants);
+    for(int a=0; a<n_ants; ++a) {
+        ants[a] = new Ant(n);
+    }
 
-    Bitmap visited(n);
+    int n_iterations = 200;
+
+    // Bitmap visited(n);
     std::vector<double> CDF(n);
     srand(time(0));
 
@@ -158,18 +164,20 @@ int main(int argc, const char ** argv) {
     std::default_random_engine eng(rd());
     std::uniform_real_distribution<float> distr(0, 1);
 
-    for (int i=0; i<1; ++i) { // for each iteration of the program
-        for(int a=0; a<1; ++a) { // for each ant, make a tour
-            std::vector<int> tour(n);
-            double tour_len = 0.0;
-            visited.clear();
+    double best_solution = DBL_MAX;
 
+    for (int i=0; i<n_iterations; ++i) { // for each iteration of the program
+        for(int a=0; a<n_ants; ++a) { // for each ant, make a tour
+            // std::vector<int> tour(n);
+            // double tour_len = 0.0;
+            ants[a]->visited.clear();
+            ants[a]->tour_len = 0;
             int curr_c = rand() % 100; // random first city for ant 'a'
-            tour[0] = curr_c;
+            ants[a]->tour[0] = curr_c;
 
             // chose next city
             for(int c=1; c<n; c++) {// c++, hehe
-                setCDF(&CDF, curr_c, &phero, mat, &visited);
+                setCDF(&CDF, curr_c, &phero, mat, &(ants[a]->visited));
                 int next_city = 0;
                 double rand_0_1 = distr(eng);
                 // loop the CDF and find the first index where the randomly generated number is greater-equal. That will be the next city.
@@ -178,22 +186,45 @@ int main(int argc, const char ** argv) {
                     if (rand_0_1 <= CDF[prob_i]) {
                         // update tour and visited with the newly selected city
                         next_city = prob_i;
-                        tour[c] = next_city;
-                        tour_len += (*mat)[curr_c][next_city];
+                        ants[a]->tour[c] = next_city;
+                        ants[a]->tour_len += (*mat)[curr_c][next_city];
                         curr_c = next_city;
-                        visited.set(curr_c, 1);
+                        ants[a]->visited.set(curr_c, 1);
                         break;
                     }
                 }
 
-            }   
-            std::cout << "current tour: " << std::endl;
-            for(int tour_i=0; tour_i < tour.size(); tour_i++) {
-                std::cout << tour[tour_i] << ' ';
+
             }
-            // Update stuff here:
-            // update pheromones,
-            // check if new tour is better than before
+            // add last connection to the tour len
+            ants[a]->tour_len += (*mat)[ants[a]->tour[0]][ants[a]->tour[n-1]];
+
+
+        }
+        // decay
+        for(int i=0;i<n;++i) {
+            for(int j=0; j<=i; ++j) {
+                double curr_val = phero[i][j]*EVAPORATE;
+                phero[i][j] = curr_val;
+                phero[j][i] = curr_val;
+            }
+        }
+        // add pheromone on used paths
+        for (int a=0; a<n_ants; ++a) {
+            double curr_tour_len = ants[a]->tour_len;
+            if(curr_tour_len < best_solution) {
+                best_solution = curr_tour_len;
+            }
+            for(int indx = 1; indx < n; indx++) {
+                int i = ants[a]->tour[indx-1];
+                int j = ants[a]->tour[indx];
+                double curr_val = phero[i][j];
+                double new_val = curr_val + (Q/curr_tour_len);
+                phero[i][j] = new_val;
+                phero[j][i] = new_val;
+            }
         }
     }
+    std::cout << "Best solution: " << best_solution << std::endl;
+    // TODO: cleanup dyn. allocated memory
 }
