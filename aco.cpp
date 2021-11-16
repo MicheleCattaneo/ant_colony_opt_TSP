@@ -7,11 +7,15 @@
 #include <random>
 #include <float.h>
 
-#define ALPHA 1.0
+#include "2opt.cpp"
+
+// How mow to exploit the cumulated knowledge
+#define ALPHA 1.5
+// How much to explore based on distances
 #define BETA 2.0
-#define INITIAL_TAU 0.0001
-#define EVAPORATE 0.95
-#define Q 0.2
+#define INITIAL_TAU 0.00001
+#define EVAPORATE 0.97
+#define Q 1.0
 
 /**
  * This class allows for a dynamic bitmap with optimized space.
@@ -77,13 +81,20 @@ std::vector<std::vector<double> > * get_matrix(const char * file_path) {
         std::getline(file, line, '\n');
     }
 
-    std::getline(file, line, ' ');
+    std::getline(file, line, ':');
     int n;
     file >> n;
 
     std::cout << n <<std::endl;
-    for(int i=0;i<4;++i){
+    for(int i=0;i<2;++i){
         std::getline(file, line, '\n');
+    }
+    for(int i=0;i<2;++i){
+        std::getline(file, line, '\n');
+        if(i==0){
+            // print best known
+            std::cout << line << std::endl;
+        }
     }
     std::vector<std::vector<double> > *mat = new std::vector<std::vector<double> >(n, std::vector<double> (n, 0));
     std::vector<std::vector<double> > pos(n, std::vector<double> (2, 0));
@@ -103,7 +114,7 @@ std::vector<std::vector<double> > * get_matrix(const char * file_path) {
             y_j = pos[j][1];
             
             // TODO, only keep half matrix? lower -> j < i
-            double dist = sqrt(((x_i-x_j)*(x_i-x_j))+((y_i-y_j)*(y_i-y_j)));
+            double dist = round(sqrt(((x_i-x_j)*(x_i-x_j))+((y_i-y_j)*(y_i-y_j))));
             (*mat)[i][j] = dist;
             (*mat)[j][i] = dist;
         }
@@ -140,6 +151,64 @@ void setCDF(std::vector<double> *probs, int i, std::vector<std::vector<double> >
     }
 }
 
+
+int get_next_city(int i, double prob, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist,  Bitmap * visited) {
+    int n = (*dist).size();
+    // get denominator
+    double tau_tot = 0.0;
+    for (int k=0;k<n;++k) {
+        if ( (*visited).get(k) == 0 && i != k) {
+            tau_tot += pow((*phero)[i][k], ALPHA) * pow((1.0/(*dist)[i][k]), BETA);
+        }
+    }
+
+    double prev = 0.0;
+    double curr_prob = 0.0;
+    for(int j=0;j<n;++j) {
+        if ( (*visited).get(j) == 0 && i != j) {// if not visited
+            curr_prob = prev + (pow((*phero)[i][j], ALPHA) * pow((1.0/(*dist)[i][j]), BETA))/tau_tot;
+            if (prob <= curr_prob) {
+                return j;
+            }
+            prev = curr_prob;
+        }
+        //else {
+        //     (*probs)[j] = prev;
+        // }
+    }
+    std::cout << "ciao" << std::endl;
+    return n-1;
+}
+
+/**
+ * Search for the first value x in a cumulative distribution function such that x >= val.
+ * @param CDF a vector of probabilities representing a cumulative distribution function
+ * @param val the value we are looking for.
+ * TODO: TESTME.
+ */
+int binarySearchCDF(std::vector<double> CDF, double val) {
+int l = 0;
+    int r = CDF.size()-1;
+    int m;
+    for (;l<=r;) {
+        if (l==r) {
+            return r;
+        }
+
+        m = (l+r)/2;
+        if (CDF[m] == val) {
+            return m;
+        } 
+        else if (CDF[m] < val) {
+            l = m+1;
+        } 
+        else {
+            r = m;
+        }
+    }
+
+    return -1;}
+
 int main(int argc, const char ** argv) {
     // assumed param is given, no checks
     std::vector<std::vector<double> > *mat = get_matrix(argv[1]);
@@ -147,7 +216,8 @@ int main(int argc, const char ** argv) {
     std::vector<std::vector<double> > phero = std::vector<std::vector<double> >(n, std::vector<double> (n, INITIAL_TAU));
 
     // initialize ants
-    int n_ants = n;
+    // int n_ants = n < 200 ? n: 50; // TODO fix this values
+    int n_ants = 10;
     std::vector<Ant *> ants(n_ants);
     for(int a=0; a<n_ants; ++a) {
         ants[a] = new Ant(n);
@@ -160,39 +230,55 @@ int main(int argc, const char ** argv) {
     srand(time(0));
 
     // initialize uniform distribution between 0 and 1
-    std::random_device rd;
-    std::default_random_engine eng(rd());
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 eng(rd());
+    // std::random_device rd;
+    // std::default_random_engine eng(rd());
     std::uniform_real_distribution<float> distr(0, 1);
 
     double best_solution = DBL_MAX;
+    std::vector<int> best_tour;
 
     for (int i=0; i<n_iterations; ++i) { // for each iteration of the program
+        // std::cout << i << std::endl;
         for(int a=0; a<n_ants; ++a) { // for each ant, make a tour
             // std::vector<int> tour(n);
             // double tour_len = 0.0;
             ants[a]->visited.clear();
             ants[a]->tour_len = 0;
-            int curr_c = rand() % 100; // random first city for ant 'a'
+            int curr_c = rand() % n; // random first city for ant 'a'
+            // int curr_c = int(distr(eng)*n);
             ants[a]->tour[0] = curr_c;
+            ants[a]->visited.set(curr_c,1);// right?
 
             // chose next city
             for(int c=1; c<n; c++) {// c++, hehe
-                setCDF(&CDF, curr_c, &phero, mat, &(ants[a]->visited));
+
+                // Possible bottleneck here, avoid complete computation?
+                // setCDF(&CDF, curr_c, &phero, mat, &(ants[a]->visited));
                 int next_city = 0;
                 double rand_0_1 = distr(eng);
+                next_city = get_next_city(curr_c, rand_0_1, &phero, mat, &(ants[a]->visited));
                 // loop the CDF and find the first index where the randomly generated number is greater-equal. That will be the next city.
-                for(int prob_i=0; prob_i < n; prob_i++) {
-                    // TODO check range of rand_0_1 and CDF, maybe 1 is not included in rand_0_1 but it is in CDF
-                    if (rand_0_1 <= CDF[prob_i]) {
-                        // update tour and visited with the newly selected city
-                        next_city = prob_i;
-                        ants[a]->tour[c] = next_city;
-                        ants[a]->tour_len += (*mat)[curr_c][next_city];
-                        curr_c = next_city;
-                        ants[a]->visited.set(curr_c, 1);
-                        break;
-                    }
-                }
+
+                // next_city = binarySearchCDF(CDF, rand_0_1);
+                ants[a]->tour[c] = next_city;
+                ants[a]->tour_len += (*mat)[curr_c][next_city];
+                curr_c = next_city;
+                ants[a]->visited.set(curr_c, 1);
+
+                // for(int prob_i=0; prob_i < n; prob_i++) {
+                //     // TODO check range of rand_0_1 and CDF, maybe 1 is not included in rand_0_1 but it is in CDF
+                //     if (rand_0_1 <= CDF[prob_i]) {
+                //         // update tour and visited with the newly selected city
+                //         next_city = prob_i;
+                //         ants[a]->tour[c] = next_city;
+                //         ants[a]->tour_len += (*mat)[curr_c][next_city];
+                //         curr_c = next_city;
+                //         ants[a]->visited.set(curr_c, 1);
+                //         break;
+                //     }
+                // }
 
 
             }
@@ -214,6 +300,9 @@ int main(int argc, const char ** argv) {
             double curr_tour_len = ants[a]->tour_len;
             if(curr_tour_len < best_solution) {
                 best_solution = curr_tour_len;
+                // save best solution
+                best_tour = ants[a]->tour;
+                // std::copy(ants[a]->tour.begin(), ants[a]->tour.end(), back_inserter(best_tour));
             }
             for(int indx = 1; indx < n; indx++) {
                 int i = ants[a]->tour[indx-1];
@@ -226,5 +315,9 @@ int main(int argc, const char ** argv) {
         }
     }
     std::cout << "Best solution: " << best_solution << std::endl;
+    for(auto itr = best_tour.begin(); itr != best_tour.end(); itr++) {
+        std::cout << *itr << ',';
+    }
+    std::cout << std::endl;
     // TODO: cleanup dyn. allocated memory
 }

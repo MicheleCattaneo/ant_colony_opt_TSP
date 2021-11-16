@@ -1,7 +1,7 @@
-NAME : kroA100.opt.tour
-COMMENT : Optimum tour for kroA100 (21282)  
-TYPE : TOUR
-DIMENSION : 100
+NAME: kroA100.opt.tour
+COMMENT: Optimum tour for kroA100 (21282)  
+TYPE: TOUR
+DIMENSION: 100
 TOUR_SECTION
 1
 47

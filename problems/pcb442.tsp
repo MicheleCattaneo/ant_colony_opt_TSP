@@ -1,8 +1,8 @@
-NAME : pcb442
-COMMENT : Drilling problem (Groetschel/Juenger/Reinelt)
-TYPE : TSP
-DIMENSION : 442
-EDGE_WEIGHT_TYPE : EUC_2D
+NAME: pcb442
+COMMENT: Drilling problem (Groetschel/Juenger/Reinelt)
+TYPE: TSP
+DIMENSION: 442
+EDGE_WEIGHT_TYPE: EUC_2D
 BEST_KNOWN : 50778
 NODE_COORD_SECTION
 1 2.00000e+02 4.00000e+02
