@@ -34,3 +34,6 @@
 # Other stuff
 .DS_Store
 .vscode
+
+# Compiled stuff
+aco
