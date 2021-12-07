@@ -70,6 +70,7 @@ int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vec
             }
         }
     }
+
     return best_c;
 }
 
@@ -94,9 +95,9 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
             prev = curr_prob;
         }
     }
-    // std::cout << "ciao" << std::endl;
-    // if no best city found, return the last one
-    return n-1;
+    // if no best city found, it means we finished the loop without finding a city to explore
+    // this is a tricky case in which the best and the last city to visit are the same, so we can not ignore it
+    return to_ignore;
 }
 
 int aco_solution_improved(const char * problem, unsigned seed, int ants_number, bool print_path) {
@@ -153,15 +154,11 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
                 ants[a]->tour[c] = next_city;
                 ants[a]->tour_len += (*mat)[last_ant_city][next_city];
                 ants[a]->visited.set(next_city, 1);
+
                 // local pheromone update
                 double old_phero = phero[last_ant_city][next_city];
                 phero[last_ant_city][next_city] = (1.0 - local_evaporate)*old_phero + local_evaporate*tau_0;
 
-                // at the last city, pick the (potentially) better tour 
-                // if (c==n_cities-1 && ants[a]->tour_len < best_global_length) {
-                //     best_global_length = ants[a]->tour_len;
-                //     best_global_path = ants[a]->tour;
-                // }
             }
         }
         // add last edge and get best tour
@@ -207,121 +204,121 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
     return best_global_length;
 }
 
-int aco_solution(const char * problem, unsigned seed, int ants_number, bool print_path) {
-    int best_known = 0;
-    std::vector<std::vector<double> > *mat = get_matrix(problem, &best_known);
-    int n = (*mat).size();
+// int aco_solution(const char * problem, unsigned seed, int ants_number, bool print_path) {
+//     int best_known = 0;
+//     std::vector<std::vector<double> > *mat = get_matrix(problem, &best_known);
+//     int n = (*mat).size();
     
-    int nn_len =  NN(mat, 0);
-    std::cout << "NN length = " << nn_len << std::endl;
+//     int nn_len =  NN(mat, 0);
+//     std::cout << "NN length = " << nn_len << std::endl;
 
-    double Q_0 = 1.0-(13.0/double(n)); // TODO fix it
+//     double Q_0 = 1.0-(13.0/double(n)); // TODO fix it
 
 
-    std::vector<std::vector<double> > phero = std::vector<std::vector<double> >(n, std::vector<double> (n, INITIAL_TAU));
+//     std::vector<std::vector<double> > phero = std::vector<std::vector<double> >(n, std::vector<double> (n, INITIAL_TAU));
 
-    std::vector<Ant *> ants(ants_number);
-    for(int a=0; a<ants_number; ++a) {
-        ants[a] = new Ant(n);
-    }
+//     std::vector<Ant *> ants(ants_number);
+//     for(int a=0; a<ants_number; ++a) {
+//         ants[a] = new Ant(n);
+//     }
 
-    std::default_random_engine generator (seed);
-    std::uniform_real_distribution<double> distr(0, 1);
+//     std::default_random_engine generator (seed);
+//     std::uniform_real_distribution<double> distr(0, 1);
 
-    double best_solution = DBL_MAX;
-    std::vector<int> best_tour;
+//     double best_solution = DBL_MAX;
+//     std::vector<int> best_tour;
 
-    int n_iterations = 500;
+//     int n_iterations = 500;
 
-    for (int i=0; i<n_iterations; ++i) { // for each iteration of the program
-        // std::cout << i << std::endl;
-        // TODO: KEEP AN EXTRA ANT THAT STOREST THE BEST TOUR
-        // MAYBE IN THE NEXT ITERATION THE SOLUTION GETS WORSE AND YOU LOSE IT!!
-        for(int a=0; a<ants_number; ++a) { // for each ant, make a tour
-            // std::vector<int> tour(n);
-            // double tour_len = 0.0;
-            ants[a]->visited.clear();
-            ants[a]->tour_len = 0;
-            // int curr_c = rand() % n; // random first city for ant 'a'
+//     for (int i=0; i<n_iterations; ++i) { // for each iteration of the program
+//         // std::cout << i << std::endl;
+//         // TODO: KEEP AN EXTRA ANT THAT STOREST THE BEST TOUR
+//         // MAYBE IN THE NEXT ITERATION THE SOLUTION GETS WORSE AND YOU LOSE IT!!
+//         for(int a=0; a<ants_number; ++a) { // for each ant, make a tour
+//             // std::vector<int> tour(n);
+//             // double tour_len = 0.0;
+//             ants[a]->visited.clear();
+//             ants[a]->tour_len = 0;
+//             // int curr_c = rand() % n; // random first city for ant 'a'
 
-            int curr_c = distr(generator) * n;
+//             int curr_c = distr(generator) * n;
 
-            // int curr_c = int(distr(eng)*n);
-            ants[a]->tour[0] = curr_c;
-            ants[a]->visited.set(curr_c,1);// right?
+//             // int curr_c = int(distr(eng)*n);
+//             ants[a]->tour[0] = curr_c;
+//             ants[a]->visited.set(curr_c,1);// right?
 
-            // chose next city
-            for(int c=1; c<n; c++) {// c++, hehe
+//             // chose next city
+//             for(int c=1; c<n; c++) {// c++, hehe
 
-                // Possible bottleneck here, avoid complete computation?
-                // setCDF(&CDF, curr_c, &phero, mat, &(ants[a]->visited));
-                int next_city = 0;
-                double rand_0_1 = distr(generator);
+//                 // Possible bottleneck here, avoid complete computation?
+//                 // setCDF(&CDF, curr_c, &phero, mat, &(ants[a]->visited));
+//                 int next_city = 0;
+//                 double rand_0_1 = distr(generator);
 
-                //if Q < Q0 -> Exploitation
-                // TODO: Always compute best city, then dont consider it in second case.
-                if (rand_0_1 < Q_0) {
-                    next_city = get_next_best_city(curr_c, &phero, mat, &(ants[a]->visited));
-                } else { // else Exploration
-                    rand_0_1 = distr(generator);
-                    next_city = get_next_city(curr_c, -1,rand_0_1, &phero, mat, &(ants[a]->visited));
-                }
-                // loop the CDF and find the first index where the randomly generated number is greater-equal. That will be the next city.
+//                 //if Q < Q0 -> Exploitation
+//                 // TODO: Always compute best city, then dont consider it in second case.
+//                 if (rand_0_1 < Q_0) {
+//                     next_city = get_next_best_city(curr_c, &phero, mat, &(ants[a]->visited));
+//                 } else { // else Exploration
+//                     rand_0_1 = distr(generator);
+//                     next_city = get_next_city(curr_c, -1,rand_0_1, &phero, mat, &(ants[a]->visited));
+//                 }
+//                 // loop the CDF and find the first index where the randomly generated number is greater-equal. That will be the next city.
 
-                // next_city = binarySearchCDF(CDF, rand_0_1);
-                ants[a]->tour[c] = next_city;
-                ants[a]->tour_len += (*mat)[curr_c][next_city];
-                curr_c = next_city;
-                ants[a]->visited.set(curr_c, 1);
+//                 // next_city = binarySearchCDF(CDF, rand_0_1);
+//                 ants[a]->tour[c] = next_city;
+//                 ants[a]->tour_len += (*mat)[curr_c][next_city];
+//                 curr_c = next_city;
+//                 ants[a]->visited.set(curr_c, 1);
 
-            }
-            // add last connection to the tour len
-            ants[a]->tour_len += (*mat)[ants[a]->tour[0]][ants[a]->tour[n-1]];
-            // std::cout << ants[a]->tour[0] << ' ' << ants[a]->tour[n-1] << std::end;
+//             }
+//             // add last connection to the tour len
+//             ants[a]->tour_len += (*mat)[ants[a]->tour[0]][ants[a]->tour[n-1]];
+//             // std::cout << ants[a]->tour[0] << ' ' << ants[a]->tour[n-1] << std::end;
 
-        }
-        // decay
-        for(int i=0;i<n;++i) {
-            for(int j=0; j<=i; ++j) {
-                double curr_val = phero[i][j]*EVAPORATE;
-                phero[i][j] = curr_val;
-                phero[j][i] = curr_val;
-            }
-        }
-        // add pheromone on used paths
-        for (int a=0; a<ants_number; ++a) {
-            double curr_tour_len = ants[a]->tour_len;
-            if(curr_tour_len < best_solution) {
-                best_solution = curr_tour_len;
-                // save best solution
-                best_tour = ants[a]->tour;
-                // std::copy(ants[a]->tour.begin(), ants[a]->tour.end(), back_inserter(best_tour));
-            }
-            for(int indx = 1; indx < n; indx++) {
-                int i = ants[a]->tour[indx-1];
-                int j = ants[a]->tour[indx];
-                double curr_val = phero[i][j];
-                double new_val = curr_val + (Q/curr_tour_len);
-                phero[i][j] = new_val;
-                phero[j][i] = new_val;
-            }
-        }
-    }
+//         }
+//         // decay
+//         for(int i=0;i<n;++i) {
+//             for(int j=0; j<=i; ++j) {
+//                 double curr_val = phero[i][j]*EVAPORATE;
+//                 phero[i][j] = curr_val;
+//                 phero[j][i] = curr_val;
+//             }
+//         }
+//         // add pheromone on used paths
+//         for (int a=0; a<ants_number; ++a) {
+//             double curr_tour_len = ants[a]->tour_len;
+//             if(curr_tour_len < best_solution) {
+//                 best_solution = curr_tour_len;
+//                 // save best solution
+//                 best_tour = ants[a]->tour;
+//                 // std::copy(ants[a]->tour.begin(), ants[a]->tour.end(), back_inserter(best_tour));
+//             }
+//             for(int indx = 1; indx < n; indx++) {
+//                 int i = ants[a]->tour[indx-1];
+//                 int j = ants[a]->tour[indx];
+//                 double curr_val = phero[i][j];
+//                 double new_val = curr_val + (Q/curr_tour_len);
+//                 phero[i][j] = new_val;
+//                 phero[j][i] = new_val;
+//             }
+//         }
+//     }
 
-    // ADD ONE iteration of 2opt (ERROR)
-    // best_solution = loop2opt(&best_tour, mat, best_solution);
+//     // ADD ONE iteration of 2opt (ERROR)
+//     // best_solution = loop2opt(&best_tour, mat, best_solution);
 
-    std::cout << "Best solution: " << best_solution << std::endl;
-    std::cout << "GAP = " << gap(best_solution, best_known) << std::endl;
-    if (print_path) {
-        for(auto itr = best_tour.begin(); itr != best_tour.end(); itr++) {
-            std::cout << *itr << ',';
-        }
-        std::cout << std::endl;
-    }
-    return best_solution;
+//     std::cout << "Best solution: " << best_solution << std::endl;
+//     std::cout << "GAP = " << gap(best_solution, best_known) << std::endl;
+//     if (print_path) {
+//         for(auto itr = best_tour.begin(); itr != best_tour.end(); itr++) {
+//             std::cout << *itr << ',';
+//         }
+//         std::cout << std::endl;
+//     }
+//     return best_solution;
 
-}
+// }
 
 
 int main(int argc, const char ** argv) {
