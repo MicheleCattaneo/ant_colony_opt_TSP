@@ -19,41 +19,11 @@
 // How mow to exploit the cumulated knowledge
 #define ALPHA 1.0
 // How much to explore based on distances
-#define BETA 2.0
+#define BETA 2.2
 #define INITIAL_TAU 0.0018
 #define EVAPORATE 0.95
 #define Q 1.0
 // #define Q_0 0.90
-
-
-/**
- * Sets the probabilities of selecting new city as a Cumulative distribution function.
- * @param probs the pointer to the vector that will contain the values
- * @param i the starting city
- * @param phero the pointer to the pheromone matrix
- * @param dist the pointer to the distance matrix
- * @param visited the pointer to the bitmap to know unvisited cities
- */
-void setCDF(std::vector<double> *probs, int i, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist, Bitmap * visited) {
-    int n = (*dist).size();
-    // get denominator
-    double tau_tot = 0.0;
-    for (int k=0;k<n;++k) {
-        if ( (*visited).get(k) == 0 && i != k) {
-            tau_tot += pow((*phero)[i][k], ALPHA) * pow((1.0/(*dist)[i][k]), BETA);
-        }
-    }
-    // build the CDF
-    double prev = 0.0;
-    for(int j=0;j<n;++j) {
-        if ( (*visited).get(j) == 0 && i != j) {// if not visited
-            (*probs)[j] = prev + (pow((*phero)[i][j], ALPHA) * pow((1.0/(*dist)[i][j]), BETA))/tau_tot;
-            prev = (*probs)[j];
-        } else {
-            (*probs)[j] = prev;
-        }
-    }
-}
 
 // TODO CHECK CODE
 int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist,  Bitmap * visited) {
@@ -79,6 +49,7 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     // get denominator
     double tau_tot = 0.0;
     for (int k=0;k<n;++k) {
+        // TODO SKIP IGNORED CITY??
         if ( (*visited).get(k) == 0 && i != k) {
             tau_tot += pow((*phero)[i][k], ALPHA) * pow((1.0/(*dist)[i][k]), BETA);
         }
@@ -125,9 +96,15 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
     std::default_random_engine generator (seed);
     std::uniform_real_distribution<double> distr(0, 1);
 
-    int n_iterations = 1000;
+    int n_iterations = 100;
 
     for (int i=0; i<n_iterations; ++i) { // for each iteration:
+        std::cout << i << std::endl;
+        // towards the end, enforce exploration
+        // if (i == n_iterations - 100) {
+        //     Q_0 = 0.85;
+        //     global_evaporate = 0.2;
+        // }
         
         // reset ants and position them randomly:
         for(int a=0; a < ants_number; a++) {
@@ -158,7 +135,7 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
                 // local pheromone update
                 double old_phero = phero[last_ant_city][next_city];
                 phero[last_ant_city][next_city] = (1.0 - local_evaporate)*old_phero + local_evaporate*tau_0;
-
+                phero[next_city][last_ant_city] = phero[last_ant_city][next_city];
             }
         }
         // add last edge and get best tour
@@ -178,20 +155,29 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
         // an ant that is not currently the best could be placed in a local area where the global minimum is.
         best_global_length = loop2opt(&best_global_path, mat, best_global_length);
 
+        // global evaporate on all edges
+        // for(int i=0; i<n_cities; i++) {
+        //     for(int j=0; j<n_cities; j++) {
+        //         double old_phero = phero[i][j];
+        //         phero[i][j] = phero[j][i] = (1.0 - global_evaporate)*old_phero;
+        //         //  = phero[i][j];
+        //     }
+        // }
         
-        // global update (edges that are not touched, do they get updated??????)
+        // global update on best tour
         for(int k=0; k<n_cities-1; k++) {
             int city_i = best_global_path.at(k);
             int city_j = best_global_path.at(k+1);
             double old_phero = phero[city_i][city_j];
             phero[city_i][city_j] = (1.0 - global_evaporate)*old_phero + global_evaporate  * 1.0/best_global_length;
+            phero[city_j][city_i] = phero[city_i][city_j];
         }
         // update last edge
         int city_i = best_global_path.at(0);
         int city_j = best_global_path.at(n_cities-1);
         double old_phero = phero[city_i][city_j];
         phero[city_i][city_j] = (1.0 - global_evaporate)*old_phero + global_evaporate  * 1.0/best_global_length;
-
+        phero[city_j][city_i] = phero[city_i][city_j];
     }
 
     std::cout << "Best lenght found: " << best_global_length << std::endl;
@@ -327,8 +313,8 @@ int main(int argc, const char ** argv) {
         seed = atoi(argv[2]);
         std::cout << "seed" << seed << std::endl;
     }
-    // for (unsigned x = 0; x < 3000; x++) {
-    //     int solution = aco_solution(argv[1], x, 10, false);
+    // for (unsigned x = 0; x < 1; x++) {
+    //      int solution = aco_solution_improved(argv[1], x, 10, true);
     // }
     int solution = aco_solution_improved(argv[1], seed, 10, true);
     // assumed param is given, no checks
