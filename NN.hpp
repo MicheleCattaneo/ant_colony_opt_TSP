@@ -1,9 +1,13 @@
+#ifndef NN
+#define NN
 // #include "Bitmap.hpp"
 #include <limits>
+#include <vector>
+#include "Bitmap.hpp"
 
 // Nearest neighbour implementation.
 // Used for initial tau_0 value of pheromone and initial best tour.
-int NN(std::vector<std::vector<double> > *mat, int start_city) {
+int NN(std::vector<std::vector<double>> *mat, int start_city) {
     int curr_city = start_city;
     // random starting city:
     int n = (*mat).size();
@@ -33,3 +37,4 @@ int NN(std::vector<std::vector<double> > *mat, int start_city) {
 
     return total_dist;
 }
+#endif
