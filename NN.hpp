@@ -1,5 +1,5 @@
-#ifndef NN
-#define NN
+#ifndef NN_HPP
+#define NN_HPP
 // #include "Bitmap.hpp"
 #include <limits>
 #include <vector>

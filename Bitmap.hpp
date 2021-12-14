@@ -1,3 +1,6 @@
+#ifndef BITMAP
+#define BITMAP
+
 /**
  * This class allows for a dynamic bitmap with optimized space.
  * Every 64 bits are represented by an unsigned long.
@@ -44,3 +47,5 @@ class Bitmap {
         }
     }
 };
+
+#endif

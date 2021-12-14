@@ -46,12 +46,42 @@ int step_2OPT(std::vector<int> *path, std::vector<std::vector<double> > *dist, i
     return curr_len;
 }
 
+int step_2OPT_best_gain(std::vector<int> *path, std::vector<std::vector<double> > *dist, int curr_len) {
+    
+    int n = (*path).size()-1; // N is size of path??
+    int best_i = -1;
+    int best_j = -1;
+    int best_gain = 0;
+    int best_new_distance = 0;
+
+    for (int i=1; i<n-1; ++i) {
+        for(int j=i+1;j<n; ++j) {
+            int curr_gain = gain(i, j, dist, path);
+            int new_distance = curr_len + curr_gain;
+            
+            if(curr_gain < best_gain) {
+                best_i = i;
+                best_j = j;
+                best_gain = curr_gain;
+                best_new_distance = new_distance;
+            }
+        }
+    }
+    if (best_gain < 0) {
+                
+        swap2opt(path, best_i ,best_j);
+        curr_len = best_new_distance;
+                
+    }
+    return curr_len;
+}
+
 int loop2opt(std::vector<int> *path, std::vector<std::vector<double> > *dist, int curr_len) {
     int best_gain = 0;
     int loops = 100;
     int new_len;
     do {
-        new_len = step_2OPT(path, dist, curr_len);
+        new_len = step_2OPT_best_gain(path, dist, curr_len);
         // stop if no new improvement is achieved
         if(new_len == curr_len) {
             // std::cout << "stopped at" << 100 - loops << std::endl;

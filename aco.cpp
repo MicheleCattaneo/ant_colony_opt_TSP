@@ -84,8 +84,8 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
     double Q_0 = 1.0-(20.0/double(n_cities));
     // double Q_0 = 0.90;
     // double Q_0 = 0.93;
-    double local_evaporate = 0.3;
-    double global_evaporate = 0.2;
+    double local_evaporate = 0.3;//03
+    double global_evaporate = 0.2;//02
     std::vector<int> best_global_path(n_cities);
     
     // get initial pheromone in relation with the size of the NN
@@ -189,7 +189,7 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
         Ant * lucky_ant;
         int rand_0_1_ant = distr(generator)* ants_number;
         lucky_ant = ants[rand_0_1_ant];
-        if(i%2==0 || best_a == -1) {
+        if(!(i%4==0) || best_a == -1) {
             int rand_0_1_ant = distr(generator)* ants_number;
             lucky_ant = ants[rand_0_1_ant];
         } else {
