@@ -1,3 +1,5 @@
+#ifndef UTILS
+#define UTILS
 #include <fstream>
 #include <cmath>
 #include <sstream>
@@ -66,6 +68,10 @@ std::vector<std::vector<double> > * get_matrix(const char * file_path, int * bes
     return mat;
 }
 
+void cleanUpMatrix( std::vector<std::vector<double> > *mat) {
+    delete mat;
+}
+
 float gap(int found_len, int best_known){
 
     return  (float((found_len - best_known)) / float(best_known)) * 100.0f;
@@ -81,3 +87,5 @@ int compute_path_len(std::vector<std::vector<double> > * mat, std::vector<int> *
     std::cout << "\n SIZE IS " << s << std::endl; // TODO FIXXX
     return s;
 }
+
+#endif

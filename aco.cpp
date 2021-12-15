@@ -14,9 +14,9 @@
 // #include "2opt.cpp"
 
 // How mow to exploit the cumulated knowledge
-#define ALPHA 1.0
+#define ALPHA 1.0//0.9
 // How much to explore based on distances
-#define BETA 1.9
+#define BETA 2.0//1.9
 #define TIMED 1
 
 // TODO CHECK CODE
@@ -29,20 +29,15 @@ int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vec
     for(int j=0;j<n;++j) {
         if ( (*visited).get(j) == 0 && i != j) {
             flag = true;
-            // if ( (*phero)[i][j] == 0) {
-            //     int x = 0;
-            // }
+
             curr_ = pow((*phero)[i][j], ALPHA)  * pow( (1.0/(*dist)[i][j]) , BETA);
-            // if (curr_ == 0 ) {
-            //     int x = 0;
-            // }
+            
             if (curr_ > best_exploitation) {
                 best_exploitation = curr_;
                 best_c = j;
             }
         }
     }
-    // WHY RETURNS -1 ???
     if (best_c == -1) {
         std::cout << "PROBLEM; no best city found" << std::endl;
         return 0;
@@ -77,7 +72,7 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     return to_ignore;
 }
 
-int aco_solution_improved(const char * problem, unsigned seed, int ants_number, bool print_path) {
+int aco_solution_improved(const char * problem, unsigned seed, int ants_number, bool print_path, bool cleanup) {
     int best_known = 0;
     std::vector<std::vector<double> > *mat = get_matrix(problem, &best_known);
     int n_cities = (*mat).size();
@@ -85,7 +80,7 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
     // double Q_0 = 0.90;
     // double Q_0 = 0.93;
     double local_evaporate = 0.3;//03
-    double global_evaporate = 0.2;//02
+    double global_evaporate = 0.1;//02
     std::vector<int> best_global_path(n_cities);
     
     // get initial pheromone in relation with the size of the NN
@@ -175,13 +170,6 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
             best_global_length = best_ant_len;
             best_global_path = ants[best_a]->tour;
         }
-        // best_global_length = std::min(best_global_length, best_ant_len);
-        // if (best_global_length == ants[best_a]->tour_len) {
-        //     best_global_path = ants[best_a]->tour;
-        // }
-        // std::cout << "BEST ANT " << best_ant_len << std::endl;
-        // std::cout << "BEST GLOBAL " << best_global_length << std::endl;
-
 
         // apply local search (2opt) with best ant (theoretically any ant or best k ants can work)
         // an ant that is not currently the best could be placed in a local area where the global minimum is.
@@ -254,6 +242,11 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
             std::cout << best_global_path[i] << ',';
         }
     }
+    // cleanup dynamic memory
+    if(cleanup) {
+        cleanUpAnts(ants);
+        cleanUpMatrix(mat);
+    }
     return best_global_length;
 }
 
@@ -264,16 +257,14 @@ int main(int argc, const char ** argv) {
         seed = atoi(argv[2]);
         std::cout << "seed" << seed << std::endl;
     }
-    // int best_sol = 30000000;
-    // for (unsigned x = 0; x < 100; x++) {
-    //     std::cout << x << std::endl;
-    //     int solution = aco_solution_improved(argv[1], x, 10, false);
-    //     if (best_sol > solution) {
-    //         best_sol = solution;
-    //     }
-    // }
-    // std::cout << "BEST SOLUTION:::::::::: " << best_sol << std::endl;
 
-    int solution = aco_solution_improved(argv[1], seed, 12, true);
-    // TODO cleanup memory
+    // for (int i=0; i < 100; i++) {
+    //     std::cout << "Seed:" <<i << std::endl;
+    //     int solution = aco_solution_improved("../AI_cup_2021_problems/u1060.tsp", i, 12, true, true);
+    //     std::cout << std::endl;
+    // }
+   
+
+    int solution = aco_solution_improved(argv[1], seed, 12, true, false);
+    
 }

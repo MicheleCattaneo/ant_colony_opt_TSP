@@ -5,8 +5,13 @@
 #include <vector>
 #include "Bitmap.hpp"
 
-// Nearest neighbour implementation.
-// Used for initial tau_0 value of pheromone and initial best tour.
+/**
+ * @brief Executes Nearest Neighbour algorithm starting at the given city
+ * 
+ * @param mat the distance matrix 
+ * @param start_city the initial city 
+ * @return int the length found.
+ */
 int NN(std::vector<std::vector<double>> *mat, int start_city) {
     int curr_city = start_city;
     // random starting city:
