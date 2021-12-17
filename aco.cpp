@@ -8,6 +8,7 @@
 #include "Bitmap.hpp"
 #include "Ant.hpp"
 #include "2opt.hpp"
+#include "two_dot_five_opt.hpp"
 #include "NN.hpp"
 #include "utils.hpp"
 
@@ -72,11 +73,12 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     return to_ignore;
 }
 
-int aco_solution_improved(const char * problem, unsigned seed, int ants_number, bool print_path, bool cleanup) {
+int aco_solution_improved(const char * problem, unsigned seed, bool print_path, bool cleanup) {
     int best_known = 0;
     std::vector<std::vector<double> > *mat = get_matrix(problem, &best_known);
     int n_cities = (*mat).size();
-    double Q_0 = 1.0-(20.0/double(n_cities));
+    int ants_number = n_cities > 300 ? 10 : 18;
+    double Q_0 = 1.0-(18.0/double(n_cities));
     // double Q_0 = 0.90;
     // double Q_0 = 0.93;
     double local_evaporate = 0.3;//03
@@ -177,14 +179,20 @@ int aco_solution_improved(const char * problem, unsigned seed, int ants_number, 
         Ant * lucky_ant;
         int rand_0_1_ant = distr(generator)* ants_number;
         lucky_ant = ants[rand_0_1_ant];
-        if(!(i%4==0) || best_a == -1) {
+        if(!(i%2==0) || best_a == -1) {
             int rand_0_1_ant = distr(generator)* ants_number;
             lucky_ant = ants[rand_0_1_ant];
         } else {
             lucky_ant = ants[best_a];
         }
 
-        int possible_best_length = loop2opt(&(lucky_ant->tour), mat, lucky_ant->tour_len);
+        int possible_best_length;
+        if(i%2==0) {
+            possible_best_length = loop25opt(&(lucky_ant->tour), mat, lucky_ant->tour_len);
+        } 
+        else {
+            possible_best_length = loop2opt(&(lucky_ant->tour), mat, lucky_ant->tour_len);
+        }
         if (possible_best_length < best_global_length) {
             best_global_length = possible_best_length;
             best_global_path = lucky_ant->tour;
@@ -265,6 +273,6 @@ int main(int argc, const char ** argv) {
     // }
    
 
-    int solution = aco_solution_improved(argv[1], seed, 12, true, false);
+    int solution = aco_solution_improved(argv[1], seed, true, false);
     
 }
