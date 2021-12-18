@@ -34,7 +34,9 @@
 # Other stuff
 .DS_Store
 .vscode
+.idea
 
 # Compiled stuff
 aco
 2opt
+two_dot_five_opt
