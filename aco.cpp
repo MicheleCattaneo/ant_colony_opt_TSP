@@ -51,7 +51,7 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     // get denominator
     double tau_tot = 0.0;
     for (int k=0;k<n;++k) {
-        // TODO SKIP IGNORED CITY??
+        // It can be a good idea to ignore the best city in this function. Just add an extra condition in both loops
         if ( (*visited).get(k) == 0 && i != k ) {
             tau_tot += pow((*phero)[i][k], ALPHA) * pow((1.0/(*dist)[i][k]), BETA);
         }
@@ -60,7 +60,7 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     double prev = 0.0;
     double curr_prob = 0.0;
     for(int j=0;j<n;++j) {
-        if ( (*visited).get(j) == 0 && i != j ) {// if not visited and not the best city
+        if ( (*visited).get(j) == 0 && i != j ) {// if not visited
             curr_prob = prev + (pow((*phero)[i][j], ALPHA) * pow((1.0/(*dist)[i][j]), BETA))/tau_tot;
             if (prob <= curr_prob) {
                 return j;
@@ -81,8 +81,8 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
     double Q_0 = 1.0-(18.0/double(n_cities));
     // double Q_0 = 0.90;
     // double Q_0 = 0.93;
-    double local_evaporate = 0.3;//03
-    double global_evaporate = 0.1;//02
+    double local_evaporate = 0.33;//03
+    double global_evaporate = 0.08;//02
     std::vector<int> best_global_path(n_cities);
     
     // get initial pheromone in relation with the size of the NN
@@ -123,7 +123,7 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
             ants[a]->visited.set(ant_city,1);
         }
 
-        // make each ant make a step untill they all make a tour
+        // make each ant make a step until they all make a tour
         for(int c=1; c < n_cities; c++) {
 
             for(int a=0; a < ants_number; a++) {
@@ -157,12 +157,9 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
             double old_phero = phero[city_i][city_j];
             phero[city_i][city_j] = (1.0 - local_evaporate)*old_phero + local_evaporate*tau_0;
             phero[city_j][city_i] = phero[city_i][city_j];
-            // TODO add last local pheromone update??? it is never set
+            
             ants[a]->tour_len += (*mat)[city_i][city_j];
-            // if(ants[a]->tour_len < best_global_length) { // TODO Bug updatest best LAST ant
-            //     best_global_length = ants[a]->tour_len; // TODO move this assignment to be done only once
-                
-            // }
+            
             if(ants[a]->tour_len < best_ant_len) {
                 best_ant_len = ants[a]->tour_len;
                 best_a = a;
@@ -201,8 +198,6 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         }
         if (best_known == best_global_length) goto give_solution;
         
-
-
         // //global evaporate on all edges (not used usually)
         // for(int i=0; i<n_cities; i++) {
         //     for(int j=0; j<n_cities; j++) {
@@ -265,13 +260,6 @@ int main(int argc, const char ** argv) {
         seed = atoi(argv[2]);
         std::cout << "seed" << seed << std::endl;
     }
-
-    // for (int i=0; i < 100; i++) {
-    //     std::cout << "Seed:" <<i << std::endl;
-    //     int solution = aco_solution_improved("../AI_cup_2021_problems/u1060.tsp", i, 12, true, true);
-    //     std::cout << std::endl;
-    // }
-   
 
     int solution = aco_solution_improved(argv[1], seed, true, false);
     

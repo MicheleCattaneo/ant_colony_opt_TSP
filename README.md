@@ -1,30 +1,28 @@
 # Ant Colony Optimization
 
+#### Implementation
+
 This program solves the Travelling Salesman Problem (TSP) using the classical Ant Colony Optimization (ACO) with some additional features.
 
-When the random number <img src="https://render.githubusercontent.com/render/math?math=q \sim U(0,1) > Q_0"> , the city that maximises <img src="https://render.githubusercontent.com/render/math?math=\left\{%5B\tau(r, u)%5D \cdot %5B \eta(r, u)%5D^{\beta}\right\}">
+The random number <img src="https://render.githubusercontent.com/render/math?math=Q_0"> that decides between exploration and exploitation is set to <img src="https://render.githubusercontent.com/render/math?math=1.0-(18.0/n)">
 
-can be ignored when a city is picked according to the probability function  <img src="https://render.githubusercontent.com/render/math?math=S \sim \frac{[\tau(r, u)] \cdot[\eta(r, u)]^{\beta}}{\sum_{u \in J_{k}(r)}[\tau(r, u)] \cdot[\eta(r, u)]^{\beta}}">.
+The value of <img src="https://render.githubusercontent.com/render/math?math=\rho"> for the local pheromone update is set to 0.3, while <img src="https://render.githubusercontent.com/render/math?math=\alpha"> for the global update is set to 0.1.
 
-In the current implementation this is however not done, as the results seemed to be worse when ignoring the best city.
+The initial pheromone guess <img src="https://render.githubusercontent.com/render/math?math=\tau_0">  Is set to be <img src="https://render.githubusercontent.com/render/math?math=(n \cdot nn)^{-1}"> where <img src="https://render.githubusercontent.com/render/math?math=nn"> is the length found with the nearest neighbour, which is always run starting from city 0.
 
 When all the ants have completed a tour (at the end of each iteration), one of them is picked so that their current tour is improved with a local search. The "lucky ant" is alternating every iteration between being the ant with the best tour length in the current iteration and a randomly chosen ant. This is because we can not exclude that an ant that has a current longer path is located in the area of the global minimum (just not reached yet), while the best ant is just located in a local minimum area.
 
-The local search is also alternating between a **2OPT** and a **2.5OPT**. This was simply trial and error, and it seemed to be a good solution.
+The local search is also alternating between a **2OPT** and a **2.5OPT**. 
 
-The typical global update rule is as follows, with <img src="https://render.githubusercontent.com/render/math?math=\alpha = 0.1 ">:
+With some trials, I found out that it is a good idea to reduce the number of swaps that the 2opt performs, allowing to get more iterations done. For this reason, each step of the 2opt only swaps the couple i,j that has the best gain.
 
-<img src="https://render.githubusercontent.com/render/math?math=
-\tau(r, s) \leftarrow(1-\alpha) \cdot \tau(r, s)%2B \alpha \cdot \Delta \tau(r, s) \\
-">
+#### How to run
 
-In this implementation, however, the whole $\tau(r, s)$ term is set to 0 and not only <img src="https://render.githubusercontent.com/render/math?math=\Delta \tau(r, s)$, when the edge $(r,s)"> is not on the global best tour. This results in the global update rule to be only applied on those edges that belong to the global best tour, and not the whole pheromone matrix.
+To run all instances run `make compile` and `make runall`.
 
-The local update rule is the usual:
+To run individual instances I advise to compile the program with `-O3` flag as follows: `c++ -std=c++11 -O3 aco.cpp -o aco ` . Then run the executable as `./aco {PATH_TO_PROBLEM}/{PROBLEM}.tsp  {SEED}  `. The given seed allows the results to be replicable, since the sequence of random numbers will be the same each time.
 
-<img src="https://render.githubusercontent.com/render/math?math=\tau(r, s) \leftarrow(1-\rho) \cdot \tau(r, s)+\rho \cdot \tau_0">
-
-However, $\rho$ it is not set to $0.1$ as the usual recommended value; it is set to <img src="https://render.githubusercontent.com/render/math?math=0.3">. This is because I wanted that edge $(r,s)$ would tend a bit more towards the initial <img src="https://render.githubusercontent.com/render/math?math=\tau_0"> value whenever is is used locally, and can then potentially be confirmed with a stronger pheromone with the global update, if the edge is part of the best global tour.
+The program stops either when the best known solution is found or 3 minutes have passed.
 
 With a time limit of 3 minutes and without farming a lucky seed, the following result could be achieved:
 
@@ -44,6 +42,8 @@ With a time limit of 3 minutes and without farming a lucky seed, the following r
 The mean error is <img src="https://render.githubusercontent.com/render/math?math=0.4761">. 
 
 Note that the parameters were fixed and some problems work better with certain set of parameters. This was a try to get an overall good result.
+
+
 
 Following are some examples of results:
 
