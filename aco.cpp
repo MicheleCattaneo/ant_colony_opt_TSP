@@ -15,12 +15,11 @@
 // #include "2opt.cpp"
 
 // How mow to exploit the cumulated knowledge
-#define ALPHA 1.0//0.9
+#define ALPHA 1.0
 // How much to explore based on distances
-#define BETA 2.0//1.9
+#define BETA 2.0
 #define TIMED 1
 
-// TODO CHECK CODE
 int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist,  Bitmap * visited) {
     double best_exploitation = 0.0;
     int n = (*dist).size();
@@ -79,10 +78,9 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
     int n_cities = (*mat).size();
     int ants_number = n_cities > 300 ? 10 : 18;
     double Q_0 = 1.0-(18.0/double(n_cities));
-    // double Q_0 = 0.90;
-    // double Q_0 = 0.93;
-    double local_evaporate = 0.33;//03
-    double global_evaporate = 0.08;//02
+
+    double local_evaporate = 0.33;
+    double global_evaporate = 0.08;
     std::vector<int> best_global_path(n_cities);
     
     // get initial pheromone in relation with the size of the NN
@@ -132,6 +130,7 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
                 // select next city for ant a
                 int next_city = get_next_best_city(last_ant_city, &phero, mat, &(ants[a]->visited));
                 double rand_0_1_q = distr(generator);
+                // std::cout <<  rand_0_1_q << " rand"<< std::endl;
                 if (rand_0_1_q > Q_0) { // explore and ignore best city
                     double rand_0_1_c = distr(generator);
                     next_city = get_next_city(last_ant_city, next_city, rand_0_1_c, &phero, mat, &(ants[a]->visited));
@@ -190,13 +189,22 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         else {
             possible_best_length = loop2opt(&(lucky_ant->tour), mat, lucky_ant->tour_len);
         }
-        if (possible_best_length < best_global_length) {
+        #if TIMED
+            auto end = std::chrono::high_resolution_clock::now();
+            auto currItr = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            totalMs += currItr;
+            // auto avgIterTime = totalMs / (i + 1); 
+        #endif
+
+        if (possible_best_length < best_global_length && totalMs < 178000) { // also check that the local search did not go beyond 3minutes
             best_global_length = possible_best_length;
             best_global_path = lucky_ant->tour;
             std::cout << "BEST GLOBAL " << best_global_length << std::endl;
-            std::cout << "At iteration: "<< i << std::endl;
+            std::cout << "At iteration: "<< i << ' ' << totalMs/1000  << 's' <<std::endl;
         }
         if (best_known == best_global_length) goto give_solution;
+
+        
         
         // //global evaporate on all edges (not used usually)
         // for(int i=0; i<n_cities; i++) {
@@ -226,15 +234,14 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         phero[city_j][city_i] = phero[city_i][city_j];
 
         #if TIMED
-            auto end = std::chrono::high_resolution_clock::now();
-            auto currItr = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            totalMs += currItr;
-            auto avgIterTime = totalMs / (i + 1);
-            if (totalMs + avgIterTime >= 176000) {
-                goto give_solution;
-            } 
+            auto end2 = std::chrono::high_resolution_clock::now();
+            auto currItr2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - end).count();
+            totalMs += currItr2;
+            auto avgIterTime = totalMs / (i + 1); 
+            if (totalMs + avgIterTime >= 178000) {
+                    goto give_solution;
+            }
         #endif
-        // std::cout << "BEST GLOBAL" << best_global_length << std::endl;
 
     }
     give_solution:

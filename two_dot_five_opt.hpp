@@ -81,7 +81,7 @@ int step_2DOT5OPT(std::vector<int> *path, std::vector<std::vector<double> > *dis
             int two_opt_g = gain2(i,j,dist, path);
             int shift1_g = shift_gain1(i,j, dist, path);
             int shift2_g = shift_gain2(i,j, dist,path);
-
+            
             if (two_opt_g < shift1_g && two_opt_g < shift2_g){
                 int new_distance = curr_len + two_opt_g;
                 if (new_distance < curr_len) {
@@ -90,7 +90,6 @@ int step_2DOT5OPT(std::vector<int> *path, std::vector<std::vector<double> > *dis
                 }
             }
             else if (shift1_g < two_opt_g && shift1_g < shift2_g) {
-                
                 int new_distance = curr_len + shift1_g;
                 if (new_distance < curr_len) {
                     shift1(path, i ,j);
@@ -98,7 +97,6 @@ int step_2DOT5OPT(std::vector<int> *path, std::vector<std::vector<double> > *dis
                 }
             } 
             else {
-                
                 int new_distance = curr_len + shift2_g;
                 if (new_distance < curr_len) {
                     shift2(path, i ,j);
