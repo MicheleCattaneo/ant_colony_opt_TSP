@@ -39,7 +39,7 @@ With a time limit of 3 minutes and without farming a lucky seed, the following r
 | rat783   | 8806        | 8888    | 0.93%  |
 | u1060    | 224094      | 227814  | 1.66%  |
 
-The mean error is <img src="https://render.githubusercontent.com/render/math?math=0.4761">. 
+The mean error is <img src="https://render.githubusercontent.com/render/math?math=0.40">. 
 
 Note that the parameters were fixed and some problems work better with certain set of parameters. This was a try to get an overall good result.
 

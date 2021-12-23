@@ -12,14 +12,21 @@
 #include "NN.hpp"
 #include "utils.hpp"
 
-// #include "2opt.cpp"
-
 // How mow to exploit the cumulated knowledge
 #define ALPHA 1.0
 // How much to explore based on distances
 #define BETA 2.0
 #define TIMED 1
 
+/**
+ * @brief Get the city reachable with an edge that maximises pheromone and inverse distance (exploitation).
+ * 
+ * @param i starting city index.
+ * @param phero pointer to the pheromone matrix.
+ * @param dist pointer to the distance matrix.
+ * @param visited pointer to the Bitmap of the current Ant.
+ * @return int the index of the best city.
+ */
 int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist,  Bitmap * visited) {
     double best_exploitation = 0.0;
     int n = (*dist).size();
@@ -45,12 +52,23 @@ int get_next_best_city(int i, std::vector<std::vector<double> > *phero, std::vec
     return best_c;
 }
 
+/**
+ * @brief Get the next city according to the distribution function based on pheromone and inverse distance (exploration).
+ * 
+ * @param i the current city index.
+ * @param to_ignore the city to ignore (for example, best city could be ignored during exploration).
+ * @param prob a random number used to select the next city using the distribution function.
+ * @param phero pointer to the pheromone matrix.
+ * @param dist pointer to the distance matrix.
+ * @param visited pointer to the Bitmap of the current Ant.
+ * @return int the next city index.
+ */
 int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<double> > *phero, std::vector<std::vector<double> > *dist,  Bitmap * visited) {
     int n = (*dist).size();
     // get denominator
     double tau_tot = 0.0;
     for (int k=0;k<n;++k) {
-        // It can be a good idea to ignore the best city in this function. Just add an extra condition in both loops
+        // It can be a good idea to ignore the best city in this function. Just add the extra condition in both loops
         if ( (*visited).get(k) == 0 && i != k ) {
             tau_tot += pow((*phero)[i][k], ALPHA) * pow((1.0/(*dist)[i][k]), BETA);
         }
@@ -72,7 +90,16 @@ int get_next_city(int i, int to_ignore, double prob, std::vector<std::vector<dou
     return to_ignore;
 }
 
-int aco_solution_improved(const char * problem, unsigned seed, bool print_path, bool cleanup) {
+/**
+ * @brief Solve the TSP for the given problem. Stops after 3 minutes or the max. number of iterations is reached.
+ * 
+ * @param problem path to the .tsp file with the problem.
+ * @param seed seed for the random generator. Allows results to be replicable.
+ * @param print_path True if path should be printed.
+ * @param cleanup True is dynamic memory should be freed.
+ * @return int the distance found of the best tour.
+ */
+int aco_solution(const char * problem, unsigned seed, bool print_path, bool cleanup) {
     int best_known = 0;
     std::vector<std::vector<double> > *mat = get_matrix(problem, &best_known);
     int n_cities = (*mat).size();
@@ -109,9 +136,7 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         #if TIMED
             auto start = std::chrono::high_resolution_clock::now();
         #endif
-        
-        // std::cout << i << std::endl;
-        
+
         // reset ants and position them randomly:
         for(int a=0; a < ants_number; a++) {
             ants[a]->visited.clear();
@@ -130,7 +155,7 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
                 // select next city for ant a
                 int next_city = get_next_best_city(last_ant_city, &phero, mat, &(ants[a]->visited));
                 double rand_0_1_q = distr(generator);
-                // std::cout <<  rand_0_1_q << " rand"<< std::endl;
+                
                 if (rand_0_1_q > Q_0) { // explore and ignore best city
                     double rand_0_1_c = distr(generator);
                     next_city = get_next_city(last_ant_city, next_city, rand_0_1_c, &phero, mat, &(ants[a]->visited));
@@ -193,7 +218,7 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
             auto end = std::chrono::high_resolution_clock::now();
             auto currItr = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             totalMs += currItr;
-            // auto avgIterTime = totalMs / (i + 1); 
+            
         #endif
 
         if (possible_best_length < best_global_length && totalMs < 178000) { // also check that the local search did not go beyond 3minutes
@@ -205,24 +230,12 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         if (best_known == best_global_length) goto give_solution;
 
         
-        
-        // //global evaporate on all edges (not used usually)
-        // for(int i=0; i<n_cities; i++) {
-        //     for(int j=0; j<n_cities; j++) {
-        //         double old_phero = phero[i][j];
-        //         phero[i][j] = phero[j][i] = (1.0 - global_evaporate)*old_phero;
-        //         // phero[j][i] = phero[i][j];
-        //         //  = phero[i][j];
-        //     }
-        // }
-        
         // global update on best tour
         for(int k=0; k<n_cities-1; k++) {
             int city_i = best_global_path[k];
             int city_j = best_global_path[k+1];
             double old_phero = phero[city_i][city_j];
             phero[city_i][city_j] = (1.0 - global_evaporate)*old_phero + global_evaporate  * 1.0/best_global_length;
-            // phero[city_i][city_j] = global_evaporate  * 1.0/best_global_length;
             phero[city_j][city_i] = phero[city_i][city_j];
         }
         // update last edge
@@ -230,7 +243,6 @@ int aco_solution_improved(const char * problem, unsigned seed, bool print_path, 
         int city_j = best_global_path[n_cities-1];
         double old_phero = phero[city_i][city_j];
         phero[city_i][city_j] = (1.0 - global_evaporate)*old_phero + global_evaporate  * 1.0/best_global_length;
-        // phero[city_i][city_j] = global_evaporate  * 1.0/best_global_length;
         phero[city_j][city_i] = phero[city_i][city_j];
 
         #if TIMED
@@ -268,6 +280,6 @@ int main(int argc, const char ** argv) {
         std::cout << "seed" << seed << std::endl;
     }
 
-    int solution = aco_solution_improved(argv[1], seed, true, false);
+    int solution = aco_solution(argv[1], seed, true, false);
     
 }
